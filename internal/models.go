@@ -1,4 +1,4 @@
-package kusaclient
+package core
 
 import "time"
 

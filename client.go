@@ -5,20 +5,18 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+
+	core "github.com/sengokyu/kusaclient/internal"
 )
 
 // Client is the main entry point for the kusaclient library.
 // It is safe for concurrent use provided the Store implementation is also safe.
 type Client struct {
-	Auth         *AuthService
-	Conversation *ConversationService
-	Tools        *ToolsService
-	Chat         *ChatService
-	Presets      *PresetsService
-
-	httpClient *http.Client
-	baseURL    string
-	store      Store
+	Auth         *core.AuthService
+	Conversation *core.ConversationService
+	Tools        *core.ToolsService
+	Chat         *core.ChatService
+	Presets      *core.PresetsService
 }
 
 // Config holds the configuration for creating a Client.
@@ -33,12 +31,7 @@ type Config struct {
 // If the Store contains a previously saved session, it is restored automatically.
 func New(cfg Config) *Client {
 	jar, _ := cookiejar.New(nil)
-
-	c := &Client{
-		httpClient: &http.Client{Jar: jar},
-		baseURL:    cfg.BaseURL,
-		store:      cfg.Store,
-	}
+	hc := &http.Client{Jar: jar}
 
 	// Restore persisted session cookie into the jar.
 	ctx := context.Background()
@@ -51,11 +44,15 @@ func New(cfg Config) *Client {
 		}
 	}
 
-	c.Auth = &AuthService{client: c}
-	c.Conversation = &ConversationService{client: c}
-	c.Tools = &ToolsService{client: c}
-	c.Chat = &ChatService{client: c}
-	c.Presets = &PresetsService{client: c}
+	t := core.NewTransport(hc, cfg.BaseURL, func(ctx context.Context, value string) {
+		_ = cfg.Store.Save(ctx, "next-session", value)
+	})
 
-	return c
+	return &Client{
+		Auth:         core.NewAuthService(t),
+		Conversation: core.NewConversationService(t),
+		Tools:        core.NewToolsService(t),
+		Chat:         core.NewChatService(t),
+		Presets:      core.NewPresetsService(t),
+	}
 }

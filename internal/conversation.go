@@ -1,10 +1,14 @@
-package kusaclient
+package core
 
 import "context"
 
 // ConversationService provides conversation history operations.
 type ConversationService struct {
-	client *Client
+	t *Transport
+}
+
+func NewConversationService(t *Transport) *ConversationService {
+	return &ConversationService{t: t}
 }
 
 type conversationOverviewResponse struct {
@@ -17,7 +21,7 @@ type conversationOverviewResponse struct {
 // List returns the latest conversations for the authenticated user.
 func (s *ConversationService) List(ctx context.Context) ([]Conversation, error) {
 	var resp conversationOverviewResponse
-	if err := s.client.doJSON(ctx, "GET", "/api/conversation/overview", nil, &resp); err != nil {
+	if err := s.t.DoJSON(ctx, "GET", "/api/conversation/overview", nil, &resp); err != nil {
 		return nil, err
 	}
 	return resp.Data.LatestConversations, nil

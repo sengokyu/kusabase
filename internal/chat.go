@@ -1,22 +1,23 @@
-package kusaclient
+package core
 
 import "context"
 
 // ChatService provides chat operations.
 type ChatService struct {
-	client *Client
+	t *Transport
 }
+
+func NewChatService(t *Transport) *ChatService { return &ChatService{t: t} }
 
 // Chat represents an ongoing chat conversation with a specific preset.
 type Chat struct {
-	client   *Client
+	t        *Transport
 	presetID int
 
 	// LastResponse holds the AI reply from the most recent Send (or New) call.
 	LastResponse string
 }
 
-// chatAPIRequest is the internal request body for POST /api/chat.
 type chatAPIRequest struct {
 	AttachmentUUIDs []string         `json:"attachmentUuids,omitempty"`
 	ConfiguredTools []ConfiguredTool `json:"configuredTools,omitempty"`
@@ -37,12 +38,12 @@ func (s *ChatService) New(preset Preset, req ChatRequest) (*Chat, error) {
 		FastHeaders:     true,
 		PresetID:        preset.ID,
 	}
-	reply, err := s.client.doText(context.Background(), "POST", "/api/chat", apiReq)
+	reply, err := s.t.DoText(context.Background(), "POST", "/api/chat", apiReq)
 	if err != nil {
 		return nil, err
 	}
 	return &Chat{
-		client:       s.client,
+		t:            s.t,
 		presetID:     preset.ID,
 		LastResponse: reply,
 	}, nil
@@ -58,7 +59,7 @@ func (c *Chat) Send(req ChatRequest) (string, error) {
 		IsRetry:         req.IsRetry,
 		PresetID:        c.presetID,
 	}
-	reply, err := c.client.doText(context.Background(), "POST", "/api/chat", apiReq)
+	reply, err := c.t.DoText(context.Background(), "POST", "/api/chat", apiReq)
 	if err != nil {
 		return "", err
 	}
