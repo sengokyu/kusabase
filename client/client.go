@@ -1,4 +1,4 @@
-package kusaclient
+package client
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 
-	core "github.com/sengokyu/kusaclient/internal"
+	core "github.com/sengokyu/kusabase/client/internal"
 )
 
 // Client is the main entry point for the kusaclient library.
@@ -24,7 +24,7 @@ type Config struct {
 	// BaseURL is the root URL of the Kusa GAI API (e.g. "https://gai.example.com").
 	BaseURL string
 	// Store is used to persist and restore the session cookie.
-	Store Store
+	Store core.Store
 }
 
 // New creates a new Client from the given Config.

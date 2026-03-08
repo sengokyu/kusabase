@@ -1,9 +1,9 @@
-package kusaclient
+package client
 
-import core "github.com/sengokyu/kusaclient/internal"
+import core "github.com/sengokyu/kusabase/client/internal"
 
 // Re-exported types from the internal package.
-// These aliases keep the public import path as "github.com/sengokyu/kusaclient".
+// These aliases keep the public import path as "github.com/sengokyu/kusabase".
 
 type (
 	// Store is the interface for persisting session data across client instances.
