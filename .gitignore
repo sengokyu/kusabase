@@ -49,3 +49,6 @@ go.work
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode
 kusa
+
+# ローカル環境変数（機密情報を含むため追跡しない）
+.env
