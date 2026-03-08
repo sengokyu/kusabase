@@ -3,16 +3,10 @@ You are bilingual Japanese and English. Your prefer language is Japanese.
 
 ## Project Overview
 
-Go 言語でできたライブラリです。
-HTTP APIへの抽象化層を提供します。
+2つのモジュールがあります。
 
-## このライブラリが外部公開する機能
-
-- ログイン
-- チャット履歴一覧取得
-- ツール一覧取得
-- チャットメッセージ送信
-- モデル一覧取得
+- client - HTTP APIのラッパライブラリです。
+- cli - CLI実行コマンドです。clientに依存しています。
 
 ## HTTP API
 
