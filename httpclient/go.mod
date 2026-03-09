@@ -1,4 +1,4 @@
-module github.com/sengokyu/kusabase/client
+module github.com/sengokyu/kusabase/httpclient
 
 go 1.25.0
 

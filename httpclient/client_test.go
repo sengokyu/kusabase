@@ -1,4 +1,4 @@
-package client_test
+package httpclient_test
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/joho/godotenv"
-	kusaclient "github.com/sengokyu/kusabase/client"
+	kusaclient "github.com/sengokyu/kusabase/httpclient"
 )
 
 // TestMain はテスト実行前に .env ファイルを読み込む。

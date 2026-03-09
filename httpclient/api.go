@@ -1,6 +1,6 @@
-package client
+package httpclient
 
-import core "github.com/sengokyu/kusabase/client/internal"
+import core "github.com/sengokyu/kusabase/httpclient/internal"
 
 // Re-exported types from the internal package.
 // These aliases keep the public import path as "github.com/sengokyu/kusabase".

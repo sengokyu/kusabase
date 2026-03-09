@@ -1,4 +1,4 @@
-package client
+package httpclient
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 
-	core "github.com/sengokyu/kusabase/client/internal"
+	core "github.com/sengokyu/kusabase/httpclient/internal"
 )
 
 // Client is the main entry point for the kusaclient library.
