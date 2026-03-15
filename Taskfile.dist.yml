@@ -1,0 +1,32 @@
+version: "3"
+
+tasks:
+  build:
+    desc: Build the kusa CLI binary
+    dir: cli
+    cmds:
+      - go build -o ../dist/kusa .
+
+  test:
+    desc: Run tests for all modules
+    cmds:
+      - task: test:httpclient
+      - task: test:cli
+
+  test:httpclient:
+    desc: Run httpclient module tests
+    dir: httpclient
+    cmds:
+      - go test -v ./...
+
+  test:cli:
+    desc: Run cli module tests
+    dir: cli
+    cmds:
+      - go test -v ./...
+
+  test:integration:
+    desc: Run integration tests
+    dir: test
+    cmds:
+      - go test -v ./...
