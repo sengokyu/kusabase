@@ -92,10 +92,13 @@ type AuthProbeResponse struct {
 
 // ChatRequest is the public request type for sending a chat message.
 type ChatRequest struct {
-	Content         string
-	AttachmentUUIDs []string
-	ConfiguredTools []ConfiguredTool
-	IsRetry         bool
+	Content          string
+	AttachmentUUIDs  []string
+	ConfiguredTools  []ConfiguredTool
+	IsRetry          bool
+	ConversationUUID string // 既存会話を継続するUUID
+	FastHeaders      bool   // 会話の最初のメッセージでtrue
+	PresetID         *int   // 使用するプリセットID（nilはサーバーデフォルト）
 }
 
 // ConfiguredTool holds the enabled/disabled state of a tool for a chat request.

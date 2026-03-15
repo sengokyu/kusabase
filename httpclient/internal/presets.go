@@ -9,11 +9,11 @@ type PresetsService struct {
 
 func NewPresetsService(t *Transport) *PresetsService { return &PresetsService{t: t} }
 
-// List returns all available presets.
-func (s *PresetsService) List(ctx context.Context) ([]Preset, error) {
+// List returns all available presets and the default preset UUID.
+func (s *PresetsService) List(ctx context.Context) (PresetListResponse, error) {
 	var resp PresetListResponse
 	if err := s.t.DoJSON(ctx, "GET", "/api/preset", nil, &resp); err != nil {
-		return nil, err
+		return PresetListResponse{}, err
 	}
-	return resp.Presets, nil
+	return resp, nil
 }

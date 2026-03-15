@@ -215,15 +215,18 @@ func TestPresets_List(t *testing.T) {
 	defer srv.Close()
 
 	client, _ := newTestClient(t, srv)
-	presets, err := client.Presets.List(context.Background())
+	resp, err := client.Presets.List(context.Background())
 	if err != nil {
 		t.Fatalf("Presets.List: %v", err)
 	}
-	if len(presets) != 2 {
-		t.Fatalf("len(presets): want 2, got %d", len(presets))
+	if len(resp.Presets) != 2 {
+		t.Fatalf("len(presets): want 2, got %d", len(resp.Presets))
 	}
-	if presets[0].UUID != "preset-uuid-1" || presets[1].UUID != "preset-uuid-2" {
-		t.Errorf("unexpected preset UUIDs: %v", presets)
+	if resp.Presets[0].UUID != "preset-uuid-1" || resp.Presets[1].UUID != "preset-uuid-2" {
+		t.Errorf("unexpected preset UUIDs: %v", resp.Presets)
+	}
+	if resp.DefaultPreset != "preset-uuid-1" {
+		t.Errorf("DefaultPreset: want %q, got %q", "preset-uuid-1", resp.DefaultPreset)
 	}
 }
 

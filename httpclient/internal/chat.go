@@ -19,12 +19,13 @@ type Chat struct {
 }
 
 type chatAPIRequest struct {
-	AttachmentUUIDs []string         `json:"attachmentUuids,omitempty"`
-	ConfiguredTools []ConfiguredTool `json:"configuredTools,omitempty"`
-	Content         string           `json:"content"`
-	FastHeaders     bool             `json:"fastHeaders,omitempty"`
-	IsRetry         bool             `json:"isRetry,omitempty"`
-	PresetID        int              `json:"presetId,omitempty"`
+	AttachmentUUIDs  []string         `json:"attachmentUuids,omitempty"`
+	ConfiguredTools  []ConfiguredTool `json:"configuredTools,omitempty"`
+	Content          string           `json:"content"`
+	ConversationUUID string           `json:"conversationUuid,omitempty"`
+	FastHeaders      bool             `json:"fastHeaders,omitempty"`
+	IsRetry          bool             `json:"isRetry,omitempty"`
+	PresetID         int              `json:"presetId,omitempty"`
 }
 
 // New starts a new conversation by sending the first message with the given preset.
@@ -47,6 +48,25 @@ func (s *ChatService) New(preset Preset, req ChatRequest) (*Chat, error) {
 		presetID:     preset.ID,
 		LastResponse: reply,
 	}, nil
+}
+
+// Send sends a chat message in a stateless manner (no conversation state is tracked).
+// ConversationUUID, FastHeaders and PresetID in req are forwarded as-is.
+func (s *ChatService) Send(ctx context.Context, req ChatRequest) (string, error) {
+	var presetID int
+	if req.PresetID != nil {
+		presetID = *req.PresetID
+	}
+	apiReq := chatAPIRequest{
+		Content:          req.Content,
+		AttachmentUUIDs:  req.AttachmentUUIDs,
+		ConfiguredTools:  req.ConfiguredTools,
+		IsRetry:          req.IsRetry,
+		FastHeaders:      req.FastHeaders,
+		ConversationUUID: req.ConversationUUID,
+		PresetID:         presetID,
+	}
+	return s.t.DoText(ctx, "POST", "/api/chat", apiReq)
 }
 
 // Send sends a follow-up message in the conversation.
