@@ -6,8 +6,16 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/joho/godotenv"
 	"github.com/sengokyu/kusabase/httpclient"
 )
+
+// TestMain はテスト実行前に .env ファイルを読み込む。
+// .env が存在しない場合は無視する。
+func TestMain(m *testing.M) {
+	_ = godotenv.Load("../.env")
+	os.Exit(m.Run())
+}
 
 // memStore はテスト用スレッドセーフなインメモリ Store。
 type memStore struct {
