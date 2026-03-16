@@ -27,6 +27,10 @@ tasks:
 
   test:integration:
     desc: Run integration tests
-    dir: test
     cmds:
-      - go test -v ./...
+      - go test -v ./test
+
+  clean:
+    desc: Clean cache
+    cmds:
+      - go clean -cache -testcache
