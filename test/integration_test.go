@@ -30,10 +30,14 @@ func (s *memStore) Save(_ context.Context, key, value string) error {
 	return nil
 }
 
-func (s *memStore) Load(_ context.Context, key string) (string, error) {
+func (s *memStore) Load(_ context.Context) (map[string]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.data[key], nil
+	result := make(map[string]string, len(s.data))
+	for k, v := range s.data {
+		result[k] = v
+	}
+	return result, nil
 }
 
 // integrationClient は環境変数 KUSA_BASE_URL を使って Client を作成する。
@@ -46,7 +50,7 @@ func integrationClient(t *testing.T) *httpclient.Client {
 	}
 	return httpclient.New(httpclient.Config{
 		BaseURL: baseURL,
-		Store:   &memStore{},
+		Store:   &memStore{data: make(map[string]string)},
 	})
 }
 

@@ -6,5 +6,5 @@ import "context"
 // Implementations must be safe for concurrent use.
 type Store interface {
 	Save(ctx context.Context, key string, value string) error
-	Load(ctx context.Context, key string) (string, error)
+	Load(ctx context.Context) (map[string]string, error)
 }

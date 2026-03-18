@@ -33,19 +33,20 @@ func New(cfg Config) *Client {
 	jar, _ := cookiejar.New(nil)
 	hc := &http.Client{Jar: jar}
 
-	// Restore persisted session cookie into the jar.
+	// Restore persisted cookies into the jar.
 	ctx := context.Background()
-	if session, err := cfg.Store.Load(ctx, "next-session"); err == nil && session != "" {
+	if cookies, err := cfg.Store.Load(ctx); err == nil && len(cookies) > 0 {
 		if u, err := url.Parse(cfg.BaseURL); err == nil {
-			jar.SetCookies(u, []*http.Cookie{{
-				Name:  "next-session",
-				Value: session,
-			}})
+			var httpCookies []*http.Cookie
+			for name, value := range cookies {
+				httpCookies = append(httpCookies, &http.Cookie{Name: name, Value: value})
+			}
+			jar.SetCookies(u, httpCookies)
 		}
 	}
 
-	t := core.NewTransport(hc, cfg.BaseURL, func(ctx context.Context, value string) {
-		_ = cfg.Store.Save(ctx, "next-session", value)
+	t := core.NewTransport(hc, cfg.BaseURL, func(ctx context.Context, name, value string) {
+		_ = cfg.Store.Save(ctx, name, value)
 	})
 
 	return &Client{

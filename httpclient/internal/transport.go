@@ -10,15 +10,15 @@ import (
 
 // Transport handles HTTP communication with the API.
 type Transport struct {
-	httpClient  *http.Client
-	baseURL     string
-	saveSession func(ctx context.Context, value string)
+	httpClient *http.Client
+	baseURL    string
+	saveCookie func(ctx context.Context, name, value string)
 }
 
 // NewTransport creates a new Transport.
-// saveFn is called whenever a new session cookie is received.
-func NewTransport(hc *http.Client, baseURL string, saveFn func(ctx context.Context, value string)) *Transport {
-	return &Transport{httpClient: hc, baseURL: baseURL, saveSession: saveFn}
+// saveFn is called for each cookie received in a response.
+func NewTransport(hc *http.Client, baseURL string, saveFn func(ctx context.Context, name, value string)) *Transport {
+	return &Transport{httpClient: hc, baseURL: baseURL, saveCookie: saveFn}
 }
 
 func (t *Transport) newRequest(ctx context.Context, method, path string, body any) (*http.Request, error) {
@@ -34,6 +34,7 @@ func (t *Transport) newRequest(ctx context.Context, method, path string, body an
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6.1 Safari/605.1.15")
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
@@ -46,9 +47,7 @@ func (t *Transport) execute(ctx context.Context, req *http.Request) (*http.Respo
 		return nil, err
 	}
 	for _, cookie := range resp.Cookies() {
-		if cookie.Name == "next-session" {
-			t.saveSession(ctx, cookie.Value)
-		}
+		t.saveCookie(ctx, cookie.Name, cookie.Value)
 	}
 	return resp, nil
 }

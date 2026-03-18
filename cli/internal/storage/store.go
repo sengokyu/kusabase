@@ -50,11 +50,15 @@ func (s *FileStore) saveToDisk() error {
 	return os.Rename(tmp, s.path)
 }
 
-// Load returns the value stored for key, or ("", nil) if not present.
-func (s *FileStore) Load(_ context.Context, key string) (string, error) {
+// Load returns all stored key-value pairs.
+func (s *FileStore) Load(_ context.Context) (map[string]string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.data[key], nil
+	result := make(map[string]string, len(s.data))
+	for k, v := range s.data {
+		result[k] = v
+	}
+	return result, nil
 }
 
 // Save stores value for key and persists to disk.

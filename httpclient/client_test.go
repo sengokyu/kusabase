@@ -46,10 +46,14 @@ func (s *memStore) Save(_ context.Context, key, value string) error {
 	return nil
 }
 
-func (s *memStore) Load(_ context.Context, key string) (string, error) {
+func (s *memStore) Load(_ context.Context) (map[string]string, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.data[key], nil
+	result := make(map[string]string, len(s.data))
+	for k, v := range s.data {
+		result[k] = v
+	}
+	return result, nil
 }
 
 // newTestClient はテスト用サーバーを向く Client を返す。
@@ -129,8 +133,8 @@ func TestAuth_LoginWithPassword_Success(t *testing.T) {
 		t.Fatalf("LoginWithPassword: %v", err)
 	}
 
-	if sess, _ := store.Load(ctx, "next-session"); sess != "new-session-token" {
-		t.Errorf("session saved: want %q, got %q", "new-session-token", sess)
+	if cookies, _ := store.Load(ctx); cookies["next-session"] != "new-session-token" {
+		t.Errorf("session saved: want %q, got %q", "new-session-token", cookies["next-session"])
 	}
 }
 
