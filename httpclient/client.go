@@ -45,8 +45,10 @@ func New(cfg Config) *Client {
 		}
 	}
 
-	t := core.NewTransport(hc, cfg.BaseURL, func(ctx context.Context, name, value string) {
-		_ = cfg.Store.Save(ctx, name, value)
+	t := core.NewTransport(hc, cfg.BaseURL, func(ctx context.Context, cookies []*http.Cookie) {
+		for _, c := range cookies {
+			_ = cfg.Store.Save(ctx, c.Name, c.Value)
+		}
 	})
 
 	return &Client{

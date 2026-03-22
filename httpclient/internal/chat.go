@@ -39,7 +39,7 @@ func (s *ChatService) New(preset Preset, req ChatRequest) (*Chat, error) {
 		FastHeaders:     true,
 		PresetID:        preset.ID,
 	}
-	reply, err := s.t.DoText(context.Background(), "POST", "/api/chat", apiReq)
+	reply, err := s.t.PostText(context.Background(), "/api/chat", apiReq)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (s *ChatService) Send(ctx context.Context, req ChatRequest) (string, error)
 		ConversationUUID: req.ConversationUUID,
 		PresetID:         presetID,
 	}
-	return s.t.DoText(ctx, "POST", "/api/chat", apiReq)
+	return s.t.PostText(ctx, "/api/chat", apiReq)
 }
 
 // Send sends a follow-up message in the conversation.
@@ -79,7 +79,7 @@ func (c *Chat) Send(req ChatRequest) (string, error) {
 		IsRetry:         req.IsRetry,
 		PresetID:        c.presetID,
 	}
-	reply, err := c.t.DoText(context.Background(), "POST", "/api/chat", apiReq)
+	reply, err := c.t.PostText(context.Background(), "/api/chat", apiReq)
 	if err != nil {
 		return "", err
 	}

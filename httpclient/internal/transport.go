@@ -8,93 +8,119 @@ import (
 	"net/http"
 )
 
+// SaveCookiesFunc is called with all cookies received in a response.
+type SaveCookiesFunc func(ctx context.Context, cookies []*http.Cookie)
+
 // Transport handles HTTP communication with the API.
 type Transport struct {
-	httpClient *http.Client
-	baseURL    string
-	saveCookie func(ctx context.Context, name, value string)
+	httpClient  *http.Client
+	baseURL     string
+	saveCookies SaveCookiesFunc
 }
 
 // NewTransport creates a new Transport.
-// saveFn is called for each cookie received in a response.
-func NewTransport(hc *http.Client, baseURL string, saveFn func(ctx context.Context, name, value string)) *Transport {
-	return &Transport{httpClient: hc, baseURL: baseURL, saveCookie: saveFn}
+// saveFn is called with all cookies received in a response.
+func NewTransport(hc *http.Client, baseURL string, saveFn SaveCookiesFunc) *Transport {
+	return &Transport{httpClient: hc, baseURL: baseURL, saveCookies: saveFn}
 }
 
-func (t *Transport) newRequest(ctx context.Context, method, path string, body any) (*http.Request, error) {
-	var bodyReader io.Reader
-	if body != nil {
-		b, err := json.Marshal(body)
-		if err != nil {
-			return nil, err
-		}
-		bodyReader = bytes.NewReader(b)
-	}
-	req, err := http.NewRequestWithContext(ctx, method, t.baseURL+path, bodyReader)
+func (t *Transport) buildRequest(ctx context.Context, method, path string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, method, t.baseURL+path, body)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6.1 Safari/605.1.15")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
+	req.Header.Set("Referer", t.baseURL)
 	return req, nil
 }
 
-func (t *Transport) execute(ctx context.Context, req *http.Request) (*http.Response, error) {
-	resp, err := t.httpClient.Do(req)
+func (t *Transport) newGetRequest(ctx context.Context, path string) (*http.Request, error) {
+	return t.buildRequest(ctx, "GET", path, nil)
+}
+
+func (t *Transport) newPostRequest(ctx context.Context, path string, body any) (*http.Request, error) {
+	b, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
-	for _, cookie := range resp.Cookies() {
-		t.saveCookie(ctx, cookie.Name, cookie.Value)
+	req, err := t.buildRequest(ctx, "POST", path, bytes.NewReader(b))
+	if err != nil {
+		return nil, err
 	}
-	return resp, nil
+	req.Header.Set("Content-Type", "application/json")
+	return req, nil
 }
 
-// DoJSON sends a request and decodes the JSON response into out.
-// out may be nil if the response body is not needed.
-func (t *Transport) DoJSON(ctx context.Context, method, path string, body, out any) error {
-	req, err := t.newRequest(ctx, method, path, body)
+func (t *Transport) do(req *http.Request, handle func(*http.Response) error) error {
+	resp, err := t.httpClient.Do(req)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := t.execute(ctx, req)
-	if err != nil {
-		return err
-	}
+	t.saveCookies(req.Context(), resp.Cookies())
 	defer resp.Body.Close()
-
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return parseError(resp)
 	}
-	if out != nil {
-		return json.NewDecoder(resp.Body).Decode(out)
-	}
-	return nil
+	return handle(resp)
 }
 
-// DoText sends a request and returns the response body as plain text.
-func (t *Transport) DoText(ctx context.Context, method, path string, body any) (string, error) {
-	req, err := t.newRequest(ctx, method, path, body)
-	if err != nil {
-		return "", err
-	}
+func (t *Transport) doJSON(req *http.Request, out any) error {
+	req.Header.Set("Accept", "application/json")
+	return t.do(req, func(resp *http.Response) error {
+		if out != nil {
+			return json.NewDecoder(resp.Body).Decode(out)
+		}
+		return nil
+	})
+}
 
-	resp, err := t.execute(ctx, req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
+func (t *Transport) doText(req *http.Request) (string, error) {
+	var result string
+	err := t.do(req, func(resp *http.Response) error {
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		result = string(b)
+		return nil
+	})
+	return result, err
+}
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", parseError(resp)
+// GetJSON sends a GET request and decodes the JSON response into out.
+// out may be nil if the response body is not needed.
+func (t *Transport) GetJSON(ctx context.Context, path string, out any) error {
+	req, err := t.newGetRequest(ctx, path)
+	if err != nil {
+		return err
 	}
-	b, err := io.ReadAll(resp.Body)
+	return t.doJSON(req, out)
+}
+
+// PostJSON sends a POST request and decodes the JSON response into out.
+// out may be nil if the response body is not needed.
+func (t *Transport) PostJSON(ctx context.Context, path string, body, out any) error {
+	req, err := t.newPostRequest(ctx, path, body)
+	if err != nil {
+		return err
+	}
+	return t.doJSON(req, out)
+}
+
+// GetText sends a GET request and returns the response body as plain text.
+func (t *Transport) GetText(ctx context.Context, path string) (string, error) {
+	req, err := t.newGetRequest(ctx, path)
 	if err != nil {
 		return "", err
 	}
-	return string(b), nil
+	return t.doText(req)
+}
+
+// PostText sends a POST request and returns the response body as plain text.
+func (t *Transport) PostText(ctx context.Context, path string, body any) (string, error) {
+	req, err := t.newPostRequest(ctx, path, body)
+	if err != nil {
+		return "", err
+	}
+	return t.doText(req)
 }
