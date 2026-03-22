@@ -56,7 +56,9 @@ func (t *Transport) do(req *http.Request, handle func(*http.Response) error) err
 	if err != nil {
 		return err
 	}
-	t.saveCookies(req.Context(), resp.Cookies())
+	if cookies := resp.Cookies(); len(cookies) > 0 {
+		t.saveCookies(req.Context(), cookies)
+	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return parseError(resp)

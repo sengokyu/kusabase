@@ -1,10 +1,13 @@
 package core
 
-import "context"
+import (
+	"context"
+	"net/http"
+)
 
-// Store is the interface for persisting session data across client instances.
+// CookieStore is the interface for persisting session data across client instances.
 // Implementations must be safe for concurrent use.
-type Store interface {
-	Save(ctx context.Context, key string, value string) error
-	Load(ctx context.Context) (map[string]string, error)
+type CookieStore interface {
+	Save(ctx context.Context, cookies []*http.Cookie) error
+	Load(ctx context.Context) ([]*http.Cookie, error)
 }

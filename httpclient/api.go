@@ -6,8 +6,8 @@ import core "github.com/sengokyu/kusabase/httpclient/internal"
 // These aliases keep the public import path as "github.com/sengokyu/kusabase".
 
 type (
-	// Store is the interface for persisting session data across client instances.
-	Store = core.Store
+	// CookieStore is the interface for persisting session data across client instances.
+	CookieStore = core.CookieStore
 
 	// APIError represents a non-2xx HTTP response from the API.
 	APIError = core.Error

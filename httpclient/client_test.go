@@ -25,35 +25,31 @@ func TestMain(m *testing.M) {
 
 // memStore はテスト用スレッドセーフなインメモリ Store。
 type memStore struct {
-	mu   sync.RWMutex
-	data map[string]string
+	mu      sync.RWMutex
+	cookies []*http.Cookie
 }
 
 // newMemStore は memStore を作成する。
-// 引数は key, value の順で初期値を設定できる。
+// 引数は name, value の順で初期 Cookie を設定できる。
 func newMemStore(initial ...string) *memStore {
-	s := &memStore{data: make(map[string]string)}
+	s := &memStore{}
 	for i := 0; i+1 < len(initial); i += 2 {
-		s.data[initial[i]] = initial[i+1]
+		s.cookies = append(s.cookies, &http.Cookie{Name: initial[i], Value: initial[i+1]})
 	}
 	return s
 }
 
-func (s *memStore) Save(_ context.Context, key, value string) error {
+func (s *memStore) Save(_ context.Context, cookies []*http.Cookie) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.data[key] = value
+	s.cookies = cookies
 	return nil
 }
 
-func (s *memStore) Load(_ context.Context) (map[string]string, error) {
+func (s *memStore) Load(_ context.Context) ([]*http.Cookie, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	result := make(map[string]string, len(s.data))
-	for k, v := range s.data {
-		result[k] = v
-	}
-	return result, nil
+	return s.cookies, nil
 }
 
 // newTestClient はテスト用サーバーを向く Client を返す。
@@ -62,7 +58,7 @@ func newTestClient(t *testing.T, srv *httptest.Server, storeValues ...string) (*
 	store := newMemStore(storeValues...)
 	client := kusaclient.New(kusaclient.Config{
 		BaseURL: srv.URL,
-		Store:   store,
+		CookieStore: store,
 	})
 	return client, store
 }
@@ -106,23 +102,26 @@ func TestNew_RestoresSession(t *testing.T) {
 // Store に保存されることを確認する。
 func TestAuth_LoginWithPassword_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/api/auth/password/login" {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/auth/password/login":
+			var body struct {
+				Email    string `json:"email"`
+				Password string `json:"password"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Errorf("decode body: %v", err)
+			}
+			if body.Email != "user@example.com" || body.Password != "secret" {
+				t.Errorf("unexpected credentials: email=%q password=%q", body.Email, body.Password)
+			}
+			http.SetCookie(w, &http.Cookie{Name: "next-session", Value: "new-session-token"})
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodGet && r.URL.Path == "/":
+			w.WriteHeader(http.StatusOK)
+		default:
 			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
 			http.NotFound(w, r)
-			return
 		}
-		var body struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			t.Errorf("decode body: %v", err)
-		}
-		if body.Email != "user@example.com" || body.Password != "secret" {
-			t.Errorf("unexpected credentials: email=%q password=%q", body.Email, body.Password)
-		}
-		http.SetCookie(w, &http.Cookie{Name: "next-session", Value: "new-session-token"})
-		w.WriteHeader(http.StatusOK)
 	}))
 	defer srv.Close()
 
@@ -133,8 +132,16 @@ func TestAuth_LoginWithPassword_Success(t *testing.T) {
 		t.Fatalf("LoginWithPassword: %v", err)
 	}
 
-	if cookies, _ := store.Load(ctx); cookies["next-session"] != "new-session-token" {
-		t.Errorf("session saved: want %q, got %q", "new-session-token", cookies["next-session"])
+	cookies, _ := store.Load(ctx)
+	var gotValue string
+	for _, c := range cookies {
+		if c.Name == "next-session" {
+			gotValue = c.Value
+			break
+		}
+	}
+	if gotValue != "new-session-token" {
+		t.Errorf("session saved: want %q, got %q", "new-session-token", gotValue)
 	}
 }
 

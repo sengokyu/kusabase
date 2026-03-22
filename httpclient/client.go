@@ -24,7 +24,7 @@ type Config struct {
 	// BaseURL is the root URL of the Kusa GAI API (e.g. "https://gai.example.com").
 	BaseURL string
 	// Store is used to persist and restore the session cookie.
-	Store core.Store
+	CookieStore core.CookieStore
 }
 
 // New creates a new Client from the given Config.
@@ -35,20 +35,14 @@ func New(cfg Config) *Client {
 
 	// Restore persisted cookies into the jar.
 	ctx := context.Background()
-	if cookies, err := cfg.Store.Load(ctx); err == nil && len(cookies) > 0 {
+	if cookies, err := cfg.CookieStore.Load(ctx); err == nil && len(cookies) > 0 {
 		if u, err := url.Parse(cfg.BaseURL); err == nil {
-			var httpCookies []*http.Cookie
-			for name, value := range cookies {
-				httpCookies = append(httpCookies, &http.Cookie{Name: name, Value: value})
-			}
-			jar.SetCookies(u, httpCookies)
+			jar.SetCookies(u, cookies)
 		}
 	}
 
 	t := core.NewTransport(hc, cfg.BaseURL, func(ctx context.Context, cookies []*http.Cookie) {
-		for _, c := range cookies {
-			_ = cfg.Store.Save(ctx, c.Name, c.Value)
-		}
+		_ = cfg.CookieStore.Save(ctx, cookies)
 	})
 
 	return &Client{

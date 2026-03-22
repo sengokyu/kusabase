@@ -17,7 +17,16 @@ type loginRequest struct {
 // LoginWithPassword authenticates with the given email and password.
 // On success the session cookie is automatically saved via the configured Store.
 func (s *AuthService) LoginWithPassword(ctx context.Context, email, password string) error {
-	return s.t.PostJSON(ctx, "/api/auth/password/login", loginRequest{Email: email, Password: password}, nil)
+	err := s.t.PostJSON(ctx, "/api/auth/password/login", loginRequest{Email: email, Password: password}, nil)
+
+	if err != nil {
+		return err
+	}
+
+	// ログイン成功したら、トップページ読み込み
+	_, err = s.t.GetText(ctx, "/")
+
+	return err
 }
 
 // Probe checks which authentication methods are available for the given email.

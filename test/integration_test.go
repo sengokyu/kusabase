@@ -2,6 +2,7 @@ package test
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"sync"
 	"testing"
@@ -19,25 +20,21 @@ func TestMain(m *testing.M) {
 
 // memStore はテスト用スレッドセーフなインメモリ Store。
 type memStore struct {
-	mu   sync.RWMutex
-	data map[string]string
+	mu      sync.RWMutex
+	cookies []*http.Cookie
 }
 
-func (s *memStore) Save(_ context.Context, key, value string) error {
+func (s *memStore) Save(_ context.Context, cookies []*http.Cookie) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.data[key] = value
+	s.cookies = cookies
 	return nil
 }
 
-func (s *memStore) Load(_ context.Context) (map[string]string, error) {
+func (s *memStore) Load(_ context.Context) ([]*http.Cookie, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	result := make(map[string]string, len(s.data))
-	for k, v := range s.data {
-		result[k] = v
-	}
-	return result, nil
+	return s.cookies, nil
 }
 
 // integrationClient は環境変数 KUSA_BASE_URL を使って Client を作成する。
@@ -49,8 +46,8 @@ func integrationClient(t *testing.T) *httpclient.Client {
 		t.Skip("KUSA_BASE_URL が未設定のためスキップ")
 	}
 	return httpclient.New(httpclient.Config{
-		BaseURL: baseURL,
-		Store:   &memStore{data: make(map[string]string)},
+		BaseURL:     baseURL,
+		CookieStore: &memStore{},
 	})
 }
 
